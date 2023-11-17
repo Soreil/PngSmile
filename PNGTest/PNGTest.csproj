@@ -21,4 +21,10 @@
     <ProjectReference Include="..\PngSmile\PngSmile.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="samples\anseladams.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

@@ -2,6 +2,7 @@ using PngSmile;
 
 namespace PNGTest
 {
+
     public class Tests
     {
         [SetUp]
@@ -12,9 +13,7 @@ namespace PNGTest
         [Test]
         public void TestHeader()
         {
-            var p = new PNG();
-            Assert.That(p, Is.Not.Null);
-            Assert.That(p.FileSignature, Has.Length.EqualTo(8));
+            Assert.That(PNG.FileSignature, Has.Length.EqualTo(8));
         }
 
         [Test]
