@@ -1,7 +1,4 @@
-﻿
-using Force.Crc32;
-
-namespace PngSmile;
+﻿namespace PngSmile;
 
 public record struct Pixel(byte R, byte G, byte B);
 
@@ -12,25 +9,24 @@ public class CRC32
 
 
     /* Table of CRCs of all 8-bit messages. */
-    private readonly ulong[] crc_table = new ulong[256];
+    private readonly uint[] crcTable = new uint[256];
 
     public CRC32()
     {
         
-        Make_crc_table(crc_table.AsSpan());
+        MakeCrcTable(crcTable.AsSpan());
     }
 
     /* Make the table for a fast CRC. */
-    private static void Make_crc_table(Span<ulong> table)
+    private static void MakeCrcTable(Span<uint> table)
     {
-
         for (int n = 0; n < table.Length; n++)
         {
-            var c = (ulong)n;
+            var c = (uint)n;
             for (int k = 0; k < 8; k++)
             {
                 if ((c & 1) != 0)
-                    c = 0xedb88320UL ^ (c >> 1);
+                    c = 0xedb88320U ^ (c >> 1);
                 else
                     c >>= 1;
             }
@@ -42,30 +38,27 @@ public class CRC32
        should be initialized to all 1's, and the transmitted value
        is the 1's complement of the final running CRC (see the
        crc() routine below)). */
-    private ulong Update_crc(ulong crc, Span<byte> buf)
+    private uint UpdateCrc(uint crc, ReadOnlySpan<byte> buf)
     {
-        ulong c = crc;
+        uint c = crc;
 
         foreach(var item in buf)
         {
-            c = crc_table[(c ^ item) & 0xff] ^ (c >> 8);
+            c = crcTable[(c ^ item) & 0xff] ^ (c >> 8);
         }
         return c;
     }
 
     /* Return the CRC of the bytes buf[0..len-1]. */
-    private ulong Crc(Span<byte> buf) => Update_crc(0xffffffffUL, buf) ^ 0xffffffffUL;
+    public uint Crc(ReadOnlySpan<byte> buf) => UpdateCrc(0xffffffffU, buf) ^ 0xffffffffU;
 
 }
-
 
 public class PNG
 {
     public byte[] FileSignature = [137, 80, 78, 71, 13, 10, 26, 10];
 
 }
-
-
 
 public record struct Chunk(uint Length, uint ChunkType, byte[] ChunkData, uint CRC);
 
