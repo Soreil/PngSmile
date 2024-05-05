@@ -1,4 +1,6 @@
-﻿using System.Buffers.Binary;
+﻿using CommunityToolkit.HighPerformance;
+
+using System.Buffers.Binary;
 
 namespace PngSmile;
 
@@ -42,6 +44,25 @@ public class PNG
             }
             return res;
         }
+        else if (filterByte == 2)
+        {
+            var res = new Span<byte>([.. span]);
+            for (int i = 3; i < res.Length; i++)
+            {
+                res[i] += prior[i];
+            }
+            return res;
+        }
+        else if (filterByte == 3)
+        {
+            //   Average(x) + floor((Raw(x-bpp)+Prior(x))/2)
+            var res = new Span<byte>([.. span]);
+            for (int i = 3; i < res.Length; i++)
+            {
+                res[i] += (byte)((res[i - 3] + prior[i]) / 2);
+            }
+            return res;
+        }
         else if (filterByte == 4)
         {
             //   Paeth(x) = Raw(x) - PaethPredictor(Raw(x - bpp), Prior(x), Prior(x - bpp))
@@ -82,4 +103,95 @@ public class PNG
         else if (pb <= pc) return b;
         else return c;
     }
+
+    public Stream Decode(ReadOnlySpan<byte> stream)
+    {
+        if (!IsPNG(stream)) throw new Exception();
+        var input = stream[8..];
+
+        List<Chunk> chunks = [];
+        while (input.Length != 0)
+        {
+            var read = PNG.DecodeChunk(input, out var chunk);
+
+            chunks.Add(chunk);
+            input = input[read..];
+        }
+
+        var labels = chunks.Select(c => c.ChunkTypeString()).ToList();
+        labels.ForEach(Console.WriteLine);
+
+        IHDR? ihdr = null;
+        GAMA? gama = null;
+        CHRM? chrm = null;
+        List<IDAT> idatChunks = [];
+
+        foreach (var chunk in chunks)
+        {
+            switch (chunk.ChunkTypeString())
+            {
+                case "IHDR":
+                    {
+                        ihdr = new IHDR(chunk);
+                    }
+                    break;
+                case "gAMA":
+                    {
+                        gama = new GAMA(chunk);
+                    }
+                    break;
+                case "cHRM":
+                    {
+                        chrm = new CHRM(chunk);
+                    }
+                    break;
+                case "IDAT":
+                    {
+                        var idat = new IDAT(chunk, ihdr!);
+                        idatChunks.Add(idat);
+                    }
+                    break;
+                case "IEND":
+                    {
+                    }
+
+                    break;
+                default:
+                    throw new NotImplementedException($"Unhandled chunk type:{chunk.ChunkTypeString()}");
+            }
+        }
+
+        foreach (var idat in idatChunks)
+        {
+            var dat = new Span<byte>(idat.Stream.Decode());
+
+
+            var fs = new MemoryStream();
+            using var sw = new StreamWriter(fs);
+            sw.Write($"P3\n{ihdr.Width} {ihdr.Height}\n255\n");
+
+            Span<byte> previousSpan = [];
+            for (int i = 0; i < ihdr.Height; i++)
+            {
+                var filterByte = dat[(int)ihdr.Width * 3 * i + i];
+
+                var startIndex = (int)ihdr.Width * 3 * i + i + 1;
+                var span = dat.Slice(startIndex, (int)ihdr.Width * 3);
+
+                var filteredSpan = PNG.Filter(span, previousSpan, filterByte);
+
+                for (int j = 0; j < ihdr.Width; j++)
+                {
+                    sw.Write($"{(int)(filteredSpan[j * 3])} {(int)(filteredSpan[j * 3 + 1])} {(int)(filteredSpan[j * 3 + 2])}\n");
+                }
+
+                previousSpan = filteredSpan;
+            }
+
+            sw.Flush();
+            return fs;
+        }
+        return null;
+    }
+
 }
