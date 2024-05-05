@@ -21,6 +21,19 @@ public class IDAT
 
 public class IHDR
 {
+    public uint ByteWidth => PixelFormat switch
+    {
+        PixelFormat.GrayScale1bit => Width / 8,
+        PixelFormat.GrayScale2bit => Width / 4,
+        PixelFormat.GrayScale4bit => Width / 2,
+        PixelFormat.GrayScale8bit => Width,
+        PixelFormat.GrayScale16bit => Width * 2,
+        PixelFormat.RGB8 => Width * 3,
+        PixelFormat.RGBA8 => Width * 4,
+        PixelFormat.RGB16 => Width * 6,
+        PixelFormat.RGBA16 => Width * 8,
+    };
+
     public readonly uint Width;
     public readonly uint Height;
 
