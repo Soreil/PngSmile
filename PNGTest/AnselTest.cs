@@ -1,10 +1,12 @@
 ﻿using PngSmile;
 
+using System.IO;
+
 namespace PNGTest
 {
     public class AnselTest
     {
-        private readonly string fileName = "samples/anseladams.png";
+        private readonly string fileName = "samples/basn2c08.png";
         private PNG p;
         private byte[] file;
 
@@ -65,7 +67,88 @@ namespace PNGTest
                 chunks.Add(chunk);
                 input = input[read..];
             }
-            var labels =chunks.Select(c => c.ChunkTypeString()).ToList();
+
+            var labels = chunks.Select(c => c.ChunkTypeString()).ToList();
+            labels.ForEach(Console.WriteLine);
+
+            IHDR? ihdr = null;
+            GAMA? gama = null;
+            CHRM? chrm = null;
+            List<IDAT> idatChunks = [];
+
+            foreach (var chunk in chunks)
+            {
+                switch (chunk.ChunkTypeString())
+                {
+                    case "IHDR":
+                        {
+                            ihdr = new IHDR(chunk);
+                            Assert.That(idatChunks, Is.Empty);
+                        }
+                        break;
+                    case "gAMA":
+                        {
+                            gama = new GAMA(chunk);
+                            Assert.That(idatChunks, Is.Empty);
+                        }
+                        break;
+                    case "cHRM":
+                        {
+                            chrm = new CHRM(chunk);
+                            Assert.That(idatChunks, Is.Empty);
+                        }
+                        break;
+                    case "IDAT":
+                        {
+                            Assert.That(ihdr, Is.Not.Null);
+                            var idat = new IDAT(chunk, ihdr);
+                            idatChunks.Add(idat);
+                        }
+                        break;
+                    case "IEND":
+                        {
+                            Assert.Multiple(() =>
+                            {
+                                Assert.That(chunk.Length, Is.EqualTo(0));
+                                Assert.That(idatChunks, Is.Not.Empty);
+                            });
+                        }
+
+                        break;
+                    default:
+                        throw new NotImplementedException($"Unhandled chunk type:{chunk.ChunkTypeString()}");
+                }
+            }
+
+            foreach (var idat in idatChunks)
+            {
+                var dat = new Span<byte>(idat.Stream.Decode());
+
+
+                using var fs = new FileStream("output.ppm", FileMode.Create);
+                using var sw = new StreamWriter(fs);
+                sw.Write($"P3\n{ihdr.Width} {ihdr.Height}\n255\n");
+
+                Span<byte> previousSpan = [];
+                for (int i = 0; i < ihdr.Height; i++)
+                {
+                    var filterByte = dat[(int)ihdr.Width * 3 * i + i];
+
+                    var startIndex = (int)ihdr.Width * 3 * i + i + 1;
+                    var span = dat.Slice(startIndex, (int)ihdr.Width * 3);
+
+                    var filteredSpan = PNG.Filter(span, previousSpan, filterByte);
+
+                    for (int j = 0; j < ihdr.Width; j++)
+                    {
+                        sw.Write($"{(int)(filteredSpan[j * 3])} {(int)(filteredSpan[j * 3 + 1])} {(int)(filteredSpan[j * 3 + 2])}\n");
+                    }
+
+                    previousSpan = filteredSpan;
+                }
+
+                sw.Flush();
+            }
         }
     }
 }

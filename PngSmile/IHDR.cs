@@ -1,6 +1,23 @@
-﻿using System.Buffers.Binary;
+﻿using Deflate;
+
+using System.Buffers.Binary;
 
 namespace PngSmile;
+
+public class IDAT
+{
+    public ZLibDataStream Stream { get; }
+
+    public IDAT(Chunk chunk, IHDR header)
+    {
+        Stream = new ZLibDataStream(
+            chunk.ChunkData[0],
+            chunk.ChunkData[1],
+            chunk.ChunkData[2..^4],
+            BinaryPrimitives.ReadUInt32BigEndian(chunk.ChunkData.AsSpan()[^4..])
+            );
+    }
+}
 
 public class IHDR
 {
@@ -29,14 +46,15 @@ public class IHDR
            Interlace method:   1 byte
         */
 
-        if (chunk.Length != 13) throw new InvalidDataException("Invalid IHDR, length mismatch");
+        ArgumentOutOfRangeException.ThrowIfNotEqual((int)chunk.Length, 13, nameof(chunk.Length));
 
         var buf = chunk.ChunkData.AsSpan();
 
         Width = BinaryPrimitives.ReadUInt32BigEndian(buf);
         Height = BinaryPrimitives.ReadUInt32BigEndian(buf[4..]);
 
-        if (Width == 0 || Height == 0) throw new Exception("PNG images are not allowed to have 0 height or width");
+        ArgumentOutOfRangeException.ThrowIfZero(Width, nameof(Width));
+        ArgumentOutOfRangeException.ThrowIfZero(Height, nameof(Height));
 
         BitDepth = buf[8];
         if (byte.PopCount(BitDepth) != 1) throw new Exception("Invalid BitDepth");
