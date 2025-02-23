@@ -1,23 +1,6 @@
-﻿using Deflate;
-
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 
 namespace PngSmile;
-
-public class IDAT
-{
-    public ZLibDataStream Stream { get; }
-
-    public IDAT(Chunk chunk, IHDR header)
-    {
-        Stream = new ZLibDataStream(
-            chunk.ChunkData[0],
-            chunk.ChunkData[1],
-            chunk.ChunkData[2..^4],
-            BinaryPrimitives.ReadUInt32BigEndian(chunk.ChunkData.AsSpan()[^4..])
-            );
-    }
-}
 
 public class IHDR
 {
@@ -41,6 +24,8 @@ public class IHDR
         PixelFormat.RGB16 => 6,
         PixelFormat.RGBA8 => 4,
         PixelFormat.RGBA16 => 8,
+        PixelFormat.GrayScaleA16 => 4,
+        PixelFormat.GrayScaleA8 => 2,
         _ => 1
     };
 

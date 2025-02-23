@@ -5,6 +5,8 @@ public record struct PixelRGB(byte R, byte G, byte B) : IPixel
     public bool IsGrayScale => false;
     public PixelRGBA16 ToRGBA16() => new PixelRGBA16((ushort)(R << 8), (ushort)(G
         << 8), (ushort)(B << 8), 0xFFFF);
+    public PixelRGB(byte val) : this(val, val, val) { }
+    public PixelRGB(PaletteEntry entry) : this(entry.Red, entry.Green, entry.Blue) { }
 }
 public record struct PixelRGBA(byte R, byte G, byte B, byte A) : IPixel
 {
@@ -49,4 +51,15 @@ public record struct PixelGray16(ushort val) : IPixel
 {
     public bool IsGrayScale => true;
     public PixelRGBA16 ToRGBA16() => new PixelRGBA16(val, val, val, 0xFFFF);
+}
+
+public record struct PixelGrayA8(byte val, byte a) : IPixel
+{
+    public bool IsGrayScale => true;
+    public PixelRGBA16 ToRGBA16() => new PixelRGBA16((ushort)(val << 8), (ushort)(val << 8), (ushort)(val << 8), (ushort)(a << 8));
+}
+public record struct PixelGrayA16(ushort val, ushort a) : IPixel
+{
+    public bool IsGrayScale => true;
+    public PixelRGBA16 ToRGBA16() => new PixelRGBA16(val, val, val, a);
 }
