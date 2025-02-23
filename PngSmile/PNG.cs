@@ -347,7 +347,7 @@ public class PNG
                 BinaryPrimitives.ReadUInt16BigEndian(bytes[(j * 2 + 2)..(j * 2 + 4)])),
 
             PixelFormat.Palette1 => new PixelRGB(plte!.PaletteEntries[(bytes[j / 8] & (1 << (7 - (j % 8)))) == 0 ? 0 : 1]),
-            PixelFormat.Palette2 => new PixelRGB(plte!.PaletteEntries[((bytes[j / 4] >> ((j % 4) * 2)) & 0x3)]),
+            PixelFormat.Palette2 => new PixelRGB(plte!.PaletteEntries[((bytes[j / 4] >> (6- ((j % 4) * 2))) & 0x3)]),
             PixelFormat.Palette4 => new PixelRGB(plte!.PaletteEntries[((bytes[j / 2] >> ((j % 2) * 4)) & 0xf)]),
             PixelFormat.Palette8 => new PixelRGB(plte!.PaletteEntries[bytes[j]]),
             _ => throw new NotImplementedException()
