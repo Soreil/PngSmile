@@ -117,35 +117,5 @@ public class AnselTest
                     throw new NotImplementedException($"Unhandled chunk type:{chunk.ChunkTypeString()}");
             }
         }
-
-        foreach (var idat in idatChunks)
-        {
-            var dat = new Span<byte>(idat.Stream.Decode());
-
-
-            using var fs = new FileStream("output.ppm", FileMode.Create);
-            using var sw = new StreamWriter(fs);
-            sw.Write($"P3\n{ihdr.Width} {ihdr.Height}\n255\n");
-
-            Span<byte> previousSpan = [];
-            for (int i = 0; i < ihdr.Height; i++)
-            {
-                var filterByte = dat[(int)ihdr.Width * 3 * i + i];
-
-                var startIndex = (int)ihdr.Width * 3 * i + i + 1;
-                var span = dat.Slice(startIndex, (int)ihdr.Width * 3);
-
-                var filteredSpan = PNG.Filter(span, previousSpan, filterByte);
-
-                for (int j = 0; j < ihdr.Width; j++)
-                {
-                    sw.Write($"{(int)(filteredSpan[j * 3])} {(int)(filteredSpan[j * 3 + 1])} {(int)(filteredSpan[j * 3 + 2])}\n");
-                }
-
-                previousSpan = filteredSpan;
-            }
-
-            sw.Flush();
-        }
     }
 }

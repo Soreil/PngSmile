@@ -34,6 +34,16 @@ public class IHDR
         PixelFormat.RGBA16 => Width * 8,
     };
 
+    public int BytesPerPixel => PixelFormat switch
+    {
+        PixelFormat.GrayScale16bit => 2,
+        PixelFormat.RGB8 => 3,
+        PixelFormat.RGB16 => 6,
+        PixelFormat.RGBA8 => 4,
+        PixelFormat.RGBA16 => 8,
+        _ => 1
+    };
+
     public readonly uint Width;
     public readonly uint Height;
 
